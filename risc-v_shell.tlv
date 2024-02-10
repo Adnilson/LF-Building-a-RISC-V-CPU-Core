@@ -1,7 +1,7 @@
 \m4_TLV_version 1d: tl-x.org
 \SV
    // This code can be found in: https://github.com/stevehoover/LF-Building-a-RISC-V-CPU-Core/risc-v_shell.tlv
-   
+
    m4_include_lib(['https://raw.githubusercontent.com/stevehoover/LF-Building-a-RISC-V-CPU-Core/main/lib/risc-v_shell_lib.tlv'])
 
 
@@ -18,7 +18,7 @@
    //  x12 (a2): 10
    //  x13 (a3): 1..10
    //  x14 (a4): Sum
-   // 
+   //
    m4_asm(ADDI, x14, x0, 0)             // Initialize sum register a4 with 0
    m4_asm(ADDI, x12, x0, 1010)          // Store count of 10 in register a2.
    m4_asm(ADDI, x13, x0, 1)             // Initialize loop count register a3 with 0
@@ -44,6 +44,27 @@
    
    $pc[31:0] = >>1$next_pc[31:0];
    $next_pc[31:0] = $reset ? 32'b0 : $pc + 32'd4;
+   
+   $is_u_instr = $instr[6:2] == 5'b00101 ||
+                 $instr[6:2] == 5'b01101;
+   
+   $is_i_instr = $instr[6:2] == 5'b00000 ||
+                 $instr[6:2] == 5'b00001 ||
+                 $instr[6:2] == 5'b00100 ||
+                 $instr[6:2] == 5'b00110 ||
+                 $instr[6:2] == 5'b11001;
+   
+   $is_s_instr = $instr[6:2] == 5'b01000 ||
+                 $instr[6:2] == 5'b01001;
+   
+   $is_r_instr = $instr[6:2] == 5'b01011 ||
+                 $instr[6:2] == 5'b01100 ||
+                 $instr[6:2] == 5'b01110 ||
+                 $instr[6:2] == 5'b10100;
+   
+   $is_b_instr = $instr[6:2] == 5'b11000;
+   
+   $is_j_instr = $instr[6:2] == 5'b11011;
    
    `READONLY_MEM($pc, $$instr[31:0])
    
