@@ -29,7 +29,6 @@
    // Test result value in x14, and set x31 to reflect pass/fail.
    m4_asm(ADDI, x30, x14, 111111010100) // Subtract expected value of 44 to set x30 to 1 if and only iff the result is 45 (1 + 2 + ... + 9).
    m4_asm(BGE, x0, x0, 0) // Done. Jump to itself (infinite loop). (Up to 20-bit signed immediate plus implicit 0 bit (unlike JALR) provides byte address; last immediate bit should also be 0)
-   m4_asm(ADDI, x0, x0, 111111010100)
    m4_asm_end()
    m4_define(['M4_MAX_CYC'], 50)
    //---------------------------------------------------------------------------------
@@ -44,7 +43,9 @@
    $reset = *reset;
    
    $pc[31:0] = >>1$next_pc[31:0];
-   $next_pc[31:0] = $reset ? 32'b0 : $pc + 32'd4;
+   $next_pc[31:0] = $reset ? 32'b0 :
+                    $taken_br ? $br_tgt_pc :
+                    $pc + 32'd4;
    
    `READONLY_MEM($pc, $$instr[31:0])
    
@@ -111,11 +112,23 @@
                    $is_add ? $src1_value + $src2_value :
                    32'b0;
    
+   // Branch Logic
+   
+   $taken_br = $is_beq ? $src1_value == $src2_value :
+               $is_bne ? $src1_value != $src2_value :
+               $is_blt ? ($src1_value < $src2_value) ^ ($src1_value[31] != $src2_value[31]) :
+               $is_bge ? ($src1_value >= $src2_value) ^ ($src1_value[31] != $src2_value[31]) :
+               $is_bltu ? $src1_value < $src2_value :
+               $is_bgeu ? $src1_value >= $src2_value :
+               1'b0;
+   
+   $br_tgt_pc[31:0] = $pc + $imm;
+   
    `BOGUS_USE($rd $rd_valid $rs1 $rs1_valid $rs2 $rs2_valid $funct3 $funct3_valid $imm_valid)
    `BOGUS_USE($is_beq $is_bne $is_blt $is_bge $is_bltu $is_bgeu $is_addi $is_add)
    
    // Assert these to end simulation (before Makerchip cycle limit).
-   *passed = 1'b0;
+   m4+tb()
    *failed = *cyc_cnt > M4_MAX_CYC;
    
    m4+rf(32, 32, $reset, $rd_valid & ($rd != 1'b0), $rd[4:0], $result[31:0], $rs1_valid, $rs1[4:0], $src1_value, $rs2_valid, $rs2[4:0], $src2_value)
