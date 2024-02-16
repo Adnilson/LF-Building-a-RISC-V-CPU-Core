@@ -109,7 +109,7 @@
    $is_or = $dec_bits ==? 11'b0_110_0110011;
    $is_and = $dec_bits ==? 11'b0_111_0110011;
    
-   $is_load = $opcode ==? 7'b0000011;
+   $is_load = $dec_bits ==? 11'bx_xxx_0000011;
    
    // Arithmetic Logic Unit
    
@@ -151,6 +151,8 @@
                                    {31'b0, $src1_value[31]}) :
                    $is_sra ? $sra_rslt[31:0] :
                    $is_srai ? $srai_rslt[31:0] :
+                   $is_s_load ? $src1_value + $imm :
+                   $is_s_instr ? $src1_value + $imm :
                    32'b0;
    
    // Arithmetic Logic Unit - END
@@ -168,6 +170,8 @@
    $br_tgt_pc[31:0] = $pc + $imm;
    $jalr_tgt_pc[31:0] = $src1_value + $imm;
    
+   $master_data[31:0] = $is_load ? $ld_data : $result;
+   
    `BOGUS_USE($rd $rd_valid $rs1 $rs1_valid $rs2 $rs2_valid $funct3 $funct3_valid $imm_valid)
    `BOGUS_USE($is_beq $is_bne $is_blt $is_bge $is_bltu $is_bgeu $is_addi $is_add)
    
@@ -175,8 +179,8 @@
    m4+tb()
    *failed = *cyc_cnt > M4_MAX_CYC;
    
-   m4+rf(32, 32, $reset, $rd_valid & ($rd != 5'b0), $rd[4:0], $result[31:0], $rs1_valid, $rs1[4:0], $src1_value, $rs2_valid, $rs2[4:0], $src2_value)
-   //m4+dmem(32, 32, $reset, $addr[4:0], $wr_en, $wr_data[31:0], $rd_en, $rd_data)
+   m4+rf(32, 32, $reset, $rd_valid & ($rd != 5'b0), $rd[4:0], $master_data, $rs1_valid, $rs1[4:0], $src1_value, $rs2_valid, $rs2[4:0], $src2_value)
+   m4+dmem(32, 32, $reset, $result[6:2], $is_s_instr, $src2_value, $is_load, $ld_data)
    m4+cpu_viz()
 \SV
    endmodule
